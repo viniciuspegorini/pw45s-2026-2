@@ -79,18 +79,21 @@ O Cliente web desenvolvido utilizando a biblioteca **React** com a linguagem de 
 ## 1 - Seminário
 ### Escolha uma linguagem, plataforma e/ou framework para desenvolvimento Web (Java, PHP, Node.js, Perl, Ruby on Rails, .NET(C♯, VB), Python, etc.) ou Híbrido (Web + Android e/ou IOs):
 
-AUANNY COMERLATO SILVA -  Cypress
-DOUGLAS RAMOS DE SOUSA FELIX - Nest.js
-FABRICIO GIANNINI DE MELLO TRINDADE - 
-IAN CARLOS DE ANDRADE CARNEIRO - 
-ISACK ARAUJO COSTA - 
-JOSE AUGUSTO FACHIN DOS SANTOS - Flask
-MATHEUS CARDOSO PEREIRA SANTOS - FastApi
-MATHEUS LARA ALVES MOREIRA - 
-MAYCON DA SILVA PEREZ CABO - 
-OTAVIO AUGUSTO LADORUSKI - Express.js
-VICTOR HUGO CARNIEL - 
+ - AUANNY COMERLATO SILVA -  Cypress
+ - DOUGLAS RAMOS DE SOUSA FELIX - Nest.js
+ - FABRICIO GIANNINI DE MELLO TRINDADE - 
+ - IAN CARLOS DE ANDRADE CARNEIRO - 
+ - ISACK ARAUJO COSTA - 
+ - JOSE AUGUSTO FACHIN DOS SANTOS - Flask
+ - MATHEUS CARDOSO PEREIRA SANTOS - FastApi
+ - MATHEUS LARA ALVES MOREIRA - 
+ - MAYCON DA SILVA PEREZ CABO - 
+ - OTAVIO AUGUSTO LADORUSKI - Express.js
+ - VICTOR HUGO CARNIEL - 
 
+#### Data da Entrega: 21/09/2026
+
+#### Apresentações: 21/09/2026 e 22/09/2026
 
 1. [Deverá ser entregue] Desenvolver uma apresentação (PPT, PDF ou Readme.MD no git) contendo uma breve apresentação do *framework* e/ou biblioteca escolhida:
 - As vantagens e desvantagens da linguagem, *framework* e/ou plataforma. 
