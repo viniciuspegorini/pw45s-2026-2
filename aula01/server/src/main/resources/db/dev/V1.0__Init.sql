@@ -25,3 +25,5 @@ create table tb_user (
 
 alter table tb_product add constraint FK_Category_Product
     foreign key (category_id) references tb_category;
+
+-- teste

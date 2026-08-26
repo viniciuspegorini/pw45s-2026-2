@@ -5,9 +5,12 @@ import br.edu.utfpr.pb.pw45s.server.mapper.ProductMapper;
 import br.edu.utfpr.pb.pw45s.server.model.Product;
 import br.edu.utfpr.pb.pw45s.server.service.ICrudService;
 import br.edu.utfpr.pb.pw45s.server.service.IProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Products")
 @RestController
 @RequestMapping("products")
 public class ProductController extends CrudController<Product, ProductDTO, Long> {
@@ -34,5 +37,10 @@ public class ProductController extends CrudController<Product, ProductDTO, Long>
     @Override
     protected Product toEntity(ProductDTO dto) {
         return productMapper.toEntity(dto);
+    }
+
+    @Override
+    public ResponseEntity<ProductDTO> create(ProductDTO entity) {
+        return super.create(entity);
     }
 }
