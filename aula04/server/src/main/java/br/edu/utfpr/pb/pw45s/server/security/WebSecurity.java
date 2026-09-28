@@ -67,15 +67,21 @@ public class WebSecurity {
                 .requestMatchers("/error/**").permitAll()
                 //permite que a rota "/h2-console" seja acessada por qualquer requisição mesmo o usuário não estando autenticado
                 .requestMatchers("/h2-console/**").permitAll()
+                //permite que a rota "/auth-social" (login com o Google) seja acessada sem o usuário estar autenticado
+                .requestMatchers("/auth-social/**").permitAll()
 
-                .requestMatchers("/products/**").hasAnyRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/categories/**").hasAnyRole("ADMIN")
-                //as demais rotas da aplicação só podem ser acessadas se o usuário estiver autenticado
-
+                //documentação da API (Swagger)
                 .requestMatchers("/v3/**").permitAll()
                 .requestMatchers("/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
 
+                // Somente usuários com permissão de admin podem acessar /products (qualquer requisição HTTP)
+                .requestMatchers("/products/**").hasAnyRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/categories/**").hasAnyRole("ADMIN", "USER")
+                .requestMatchers("/categories/**").hasAnyRole("USER")
+                .requestMatchers("/users/**").hasAnyRole("ADMIN")
+
+                //as demais rotas da aplicação só podem ser acessadas se o usuário estiver autenticado
                 .anyRequest().authenticated()
         );
         http.authenticationManager(authenticationManager)
