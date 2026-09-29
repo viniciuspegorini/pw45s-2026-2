@@ -81,7 +81,7 @@ O Cliente web desenvolvido utilizando a biblioteca **React** com a linguagem de 
 
  - AUANNY COMERLATO SILVA -  Cypress
  - DOUGLAS RAMOS DE SOUSA FELIX - Nest.js
- - FABRICIO GIANNINI DE MELLO TRINDADE - 
+ - FABRICIO GIANNINI DE MELLO TRINDADE - Django
  - IAN CARLOS DE ANDRADE CARNEIRO - . Net C#
  - ISACK ARAUJO COSTA - Ruby on rails
  - JOSE AUGUSTO FACHIN DOS SANTOS - Flask
@@ -114,6 +114,194 @@ pessoa: {nome, cpf, telefone, rua, numero, complemento, bairro, cep, cidade, est
 
 3. O aluno deverá apresentar o trabalho e mostrar a aplicação/código-fonte da mesma (entre 15 e 30 minutos).
 	
-## 2 - Projeto de desenvolvimento de software:
-- Desenvolvimento do *back-end* da aplicação
-- Desenvolvimento do *front-end* da aplicação
+## 2 - Projeto final
+
+### 🏪 Projeto final da disciplina - Área administrativa de uma aplicação de comércio eletrônico
+
+No projeto final será desenvolvida a camada administrativa de um comércio eletrônico, na qual os pedidos realizados pelos clientes serão processados. Deverá ser desenvolvido o *back-end* (API REST) e o *front-end* (Cliente Web) da aplicação.
+
+O sistema deverá contar com diferentes perfis de usuário, com permissões distintas dentro da aplicação. Deve conter uma área para o gerenciamento dos usuários, que apenas usuários com perfil ***administrador*** podem acessar e na qual atribuem permissões aos novos usuários. Um usuário deverá realizar o próprio cadastro, mas deve permanecer inativo no sistema até que um usuário com perfil ***administrador*** atribua uma permissão e ative esse usuário.
+
+Após a autenticação, deverá ser exibida ao usuário uma tela no formato ***Painel Administrativo (dashboard)***, contendo totalizadores como o número de pedidos em cada situação e gráficos com o valor vendido mensalmente no último ano.
+
+Deverá existir uma tela para listagem de todos os pedidos. Todo pedido realizado inicia com a situação `AGUARDANDO_PAGAMENTO` e poderá assumir outras situações ao longo do processo (ver [Ciclo de vida do pedido](#-ciclo-de-vida-do-pedido)). Os pedidos poderão estar cadastrados diretamente no banco, via *script.sql*, pois será avaliada apenas a camada de administração do *e-commerce*.
+
+Os usuários deverão poder visualizar e editar a situação dos pedidos. Ao atualizar um pedido para `EM_TRANSPORTE`, deverá ser **anexada** uma nota fiscal ao pedido, ou seja, deverá ser possível anexar um arquivo no formato .pdf. Também poderão ser anexados comprovantes e outros documentos.
+Sempre que a situação de um pedido for alterada, o cliente que efetuou o pedido deverá receber um e-mail com a atualização.
+
+### 👥 Perfis de usuário
+
+| Perfil | Descrição | Permissões |
+|---|---|---|
+| `ADMIN` | Administrador do sistema | Acesso total: gerencia usuários (ativar, desativar, atribuir perfil), pedidos, anexos e consulta a auditoria. |
+| `OPERADOR` | Responsável por processar os pedidos | Visualiza o *dashboard*, lista pedidos, altera status e anexa documentos. |
+| `VISUALIZADOR` | Acompanhamento/consulta | Apenas leitura: *dashboard*, pedidos e anexos. |
+| *(novo usuário)* | Cadastro recém-realizado | Nenhuma — permanece **inativo** até ser ativado por um `ADMIN`. |
+
+### 🔄 Ciclo de vida do pedido
+
+Situações possíveis: `AGUARDANDO_PAGAMENTO`, `PAGO`, `EM_SEPARACAO`, `EM_TRANSPORTE`, `ENTREGUE` e `CANCELADO`.
+
+As transições permitidas devem ser **validadas no *back-end*** (uma requisição com transição inválida deve retornar erro):
+
+```mermaid
+stateDiagram-v2
+    [*] --> AGUARDANDO_PAGAMENTO
+    AGUARDANDO_PAGAMENTO --> PAGO
+    AGUARDANDO_PAGAMENTO --> CANCELADO
+    PAGO --> EM_SEPARACAO
+    PAGO --> CANCELADO
+    EM_SEPARACAO --> EM_TRANSPORTE: exige nota fiscal (.pdf)
+    EM_TRANSPORTE --> ENTREGUE
+    ENTREGUE --> [*]
+    CANCELADO --> [*]
+```
+
+- `CANCELADO` e `ENTREGUE` são estados finais (não podem ser alterados).
+- A passagem para `EM_TRANSPORTE` exige a nota fiscal anexada (e, opcionalmente, o código de rastreio).
+
+### ✅ Requisitos
+
+#### Requisitos funcionais
+
+| Código | Requisito | Tipo |
+|---|---|---|
+| **RF01** | Autocadastro de usuário (permanece inativo até a ativação). | Obrigatório |
+| **RF02** | Autenticação (login/logout) com controle de acesso por perfil. | Obrigatório |
+| **RF03** | Gerenciamento de usuários pelo `ADMIN` (listar, ativar/desativar, atribuir perfil). | Obrigatório |
+| **RF04** | *Dashboard* com totalizadores de pedidos por situação e gráfico de valor vendido por mês (últimos 12 meses). | Obrigatório |
+| **RF05** | Listagem de pedidos com paginação e filtros (status, cliente, período). | Obrigatório |
+| **RF06** | Detalhe do pedido (itens, cliente, valores, anexos e histórico). | Obrigatório |
+| **RF07** | Alteração de status respeitando o [ciclo de vida do pedido](#-ciclo-de-vida-do-pedido). | Obrigatório |
+| **RF08** | *Upload* de anexos no pedido (nota fiscal, comprovante de pagamento, outros), com visualização e *download*. | Obrigatório |
+| **RF09** | Envio de e-mail ao cliente a cada alteração de status (*template* HTML simples ou texto). | Obrigatório |
+| **RF10** | Histórico de alterações de status do pedido (quem alterou, quando, status anterior e novo). | Obrigatório |
+| **RF11** | Registro de log das operações de atualização de pedidos e de envio de e-mails. | Obrigatório |
+| **RF12** | Envio de e-mail com o documento anexado (ex.: nota fiscal). | Opcional |
+| **RF13** | Notificação por e-mail ao usuário quando sua conta for ativada pelo `ADMIN`. | Opcional |
+| **RF14** | Recuperação de senha por e-mail. | Opcional |
+| **RF15** | Observação/comentário interno ao alterar o status e código de rastreio ao enviar para transporte. | Opcional |
+| **RF16** | Exportação da listagem de pedidos (CSV ou PDF). | Opcional |
+| **RF17** | Filtro de período no *dashboard*, ticket médio, produtos mais vendidos e pedidos parados há mais de X dias. | Opcional |
+| **RF18** | Tela de consulta da auditoria (somente `ADMIN`). | Opcional |
+
+#### Requisitos não funcionais
+
+| Código | Requisito | Tipo |
+|---|---|---|
+| **RNF01** | Documentação da API utilizando OpenAPI 3.x (Swagger UI). | Obrigatório |
+| **RNF02** | Versionamento do banco de dados com **Flyway** ou **Liquibase**. | Obrigatório |
+| **RNF03** | Validação dos dados de entrada (Bean Validation) e tratamento global de erros (`@ControllerAdvice`). | Obrigatório |
+| **RNF04** | Validação dos anexos: tipo (MIME) e tamanho máximo do arquivo. | Obrigatório |
+| **RNF05** | Paginação e ordenação realizadas no servidor. | Obrigatório |
+| **RNF06** | *Refresh token* e bloqueio de conta após várias tentativas de login sem sucesso. | Opcional |
+| **RNF07** | *Download* de anexos via URL temporária (*presigned URL* no MinIO/S3). | Opcional |
+| **RNF08** | Auditoria das entidades com Hibernate Envers ou tabela própria. | Opcional |
+| **RNF09** | Testes unitários e de integração (JUnit + Testcontainers). | Opcional |
+
+### 📋 Sugestões de organização do sistema
+
+-   💻 ***Front-end***: React + TypeScript.
+    -   Tela de cadastro de usuário.
+    -   Tela de autenticação.
+    -   Tela de Painel Administrativo.
+    -   Tela de gerenciamento de usuários.
+    -   Tela de listagem de pedidos.
+    -   Tela de detalhe do pedido (alterar status, anexar documentos, visualizar anexos e histórico).
+
+-   📂 ***Back-end (API)***: Spring Boot.
+    -   Endpoints para gerenciamento de usuários e pedidos.
+    -   Endpoint de *upload* (salvar arquivos no MinIO, localmente ou em *storage* tipo AWS S3).
+    -   Serviço de envio de e-mail (ex.: Spring Mail). Em desenvolvimento, utilizar um servidor SMTP de testes como **Mailpit** ou **MailHog**.
+    -   Log técnico com SLF4J/Logback e trilha de auditoria separada.
+
+-   💾 ***Banco de dados***: PostgreSQL, MySQL ou MongoDB.
+
+#### Modelo de dados mínimo esperado
+
+```mermaid
+erDiagram
+    USUARIO {
+        long id
+        string nome
+        string email
+        string senha
+        string perfil
+        boolean ativo
+    }
+    PEDIDO {
+        long id
+        datetime data
+        string status
+        decimal valor_total
+        string codigo_rastreio
+    }
+    PEDIDO_ITEM {
+        long id
+        int quantidade
+        decimal valor_unitario
+    }
+    PRODUTO {
+        long id
+        string nome
+        decimal preco
+    }
+    CATEGORIA {
+        long id
+        string nome
+    }
+    DOCUMENTO {
+        long id
+        string tipo
+        string nome_arquivo
+        string caminho
+        datetime data_upload
+    }
+    HISTORICO_STATUS {
+        long id
+        string status_anterior
+        string status_novo
+        string observacao
+        datetime data
+    }    
+    PEDIDO ||--|{ PEDIDO_ITEM : contem
+    PRODUTO ||--o{ PEDIDO_ITEM : "referenciado em"
+    CATEGORIA ||--o{ PRODUTO : agrupa
+    PEDIDO ||--o{ DOCUMENTO : possui
+    PEDIDO ||--o{ HISTORICO_STATUS : registra
+    USUARIO ||--o{ HISTORICO_STATUS : altera
+    USUARIO ||--o{ DOCUMENTO : anexa
+```
+
+- *** Os clientes podem estar armazenados na mesma tabela de usuários (com perfil diferente) ou em uma tabela própria de clientes.
+- Produtos e categorias são tabelas secundárias e podem ser populadas diretamente via *script.sql*.
+
+### ➡️ Alguns fluxos básicos
+
+1.  Usuário se cadastra → fica inativo → `ADMIN` atribui um perfil e ativa a conta.
+2.  Usuário autentica → vê o painel administrativo.
+3.  Usuário navega para o menu Pedidos → vê a lista de pedidos (com filtros e paginação).
+4.  Usuário abre um pedido → altera o status → *back-end* valida a transição → salva e registra o histórico/log → dispara e-mail para o cliente.
+5.  Usuário anexa um documento → *back-end* valida e salva o arquivo → associa ao pedido → opcionalmente envia notificação.
+
+### 📦 Artefatos de entrega
+
+- Repositório Git com histórico de *commits* ao longo do desenvolvimento.
+- `README.md` com instruções para executar o projeto (*back-end* e *front-end*).
+- `docker-compose.yml` com os serviços de apoio (banco de dados, MinIO, Mailpit/MailHog).
+- *Scripts* de migração do banco (Flyway/Liquibase) com dados de exemplo (usuários, clientes, produtos e pedidos).
+- Documentação da API acessível via Swagger UI.
+
+### 🧮 Critérios de avaliação
+
+| Critério | Peso |
+|---|---|
+| Funcionalidades obrigatórias (RF01–RF11) | 40% |
+| Requisitos não funcionais obrigatórios (RNF01–RNF05) | 20% |
+| Qualidade e organização do código (camadas, boas práticas, versionamento) | 15% |
+| Apresentação e domínio do código | 15% |
+| Requisitos opcionais implementados | 10% |
+
+### 📆 Prazo de entrega:
+
+#### 📌 Entrega com apresentação: **30/11/2026** (Peso 0.70)

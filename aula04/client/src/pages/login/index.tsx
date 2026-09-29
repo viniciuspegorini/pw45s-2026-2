@@ -36,6 +36,7 @@ export const LoginPage = () => {
 
   //Autenticação GOOGLE
   const onSuccess = async (response: CredentialResponse) => {
+    console.log(response.credential)
     if (!response.credential || !(await handleLoginSocial(response.credential))) {
       showGoogleError();
     }
