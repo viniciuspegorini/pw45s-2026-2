@@ -1,0 +1,18 @@
+########################### SERVICES
+services:
+  ########################### RUSTFS
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+    container_name: rustfs
+    environment:
+      RUSTFS_ACCESS_KEY: "rustfsadmin"
+      RUSTFS_SECRET_KEY: "rustfsadmin"
+      RUSTFS_VOLUMES: "/data"
+      RUSTFS_ADDRESS: "0.0.0.0:9000"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
+    volumes:
+      - ./rustfs-data:/data
+    ports:
+      - 9000:9000 # API S3
+      - 9001:9001 # Console web
