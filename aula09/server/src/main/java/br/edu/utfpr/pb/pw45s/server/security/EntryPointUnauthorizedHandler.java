@@ -1,5 +1,6 @@
 package br.edu.utfpr.pb.pw45s.server.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component(value = "authenticationEntryPoint")
+@Slf4j
 public class EntryPointUnauthorizedHandler implements AuthenticationEntryPoint {
 
     @Override
@@ -18,6 +20,11 @@ public class EntryPointUnauthorizedHandler implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException)
                             throws IOException, ServletException {
+        log.atWarn()
+                .addKeyValue("event", "auth.unauthorized")
+                .addKeyValue("http.method", request.getMethod())
+                .addKeyValue("http.path", request.getRequestURI())
+                .log("Unauthorized access to {} {}: {}", request.getMethod(), request.getRequestURI(), authException.getMessage());
         response.sendError(HttpStatus.UNAUTHORIZED.value(),
                 HttpStatus.UNAUTHORIZED.getReasonPhrase());
     }

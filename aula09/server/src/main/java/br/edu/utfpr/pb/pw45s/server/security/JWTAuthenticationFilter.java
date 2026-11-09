@@ -7,6 +7,7 @@ import br.edu.utfpr.pb.pw45s.server.service.AuthService;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,7 +22,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Date;
 
+@Slf4j
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
+
+    private static final String USERNAME_ATTRIBUTE = "auth.username";
 
     private final AuthenticationManager authenticationManager;
     private final AuthService authService;
@@ -36,6 +40,8 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
         try {
             User credentials = new ObjectMapper().readValue(request.getInputStream(), User.class);
+            // Guarda o username para ser utilizado no log em caso de falha na autenticação
+            request.setAttribute(USERNAME_ATTRIBUTE, credentials.getUsername());
             User user = (User) authService.loadUserByUsername(credentials.getUsername());
 
             return authenticationManager.authenticate(
@@ -69,7 +75,24 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                 new ObjectMapper().writeValueAsString(
                         new AuthenticationResponse(token, new UserResponseDTO(user)))
         );
+        log.atInfo()
+                .addKeyValue("event", "auth.login.success")
+                .addKeyValue("auth.provider", "local")
+                .addKeyValue("user.name", authResult.getName())
+                .log("User {} authenticated successfully", authResult.getName());
+    }
 
-
+    @Override
+    protected void unsuccessfulAuthentication(HttpServletRequest request,
+                                              HttpServletResponse response,
+                                              AuthenticationException failed)
+                                                throws IOException, ServletException {
+        log.atWarn()
+                .addKeyValue("event", "auth.login.failure")
+                .addKeyValue("auth.provider", "local")
+                .addKeyValue("user.name", request.getAttribute(USERNAME_ATTRIBUTE))
+                .addKeyValue("auth.reason", failed.getClass().getSimpleName())
+                .log("Authentication failed for user {}: {}", request.getAttribute(USERNAME_ATTRIBUTE), failed.getMessage());
+        super.unsuccessfulAuthentication(request, response, failed);
     }
 }

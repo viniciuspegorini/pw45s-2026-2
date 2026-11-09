@@ -3,6 +3,18 @@
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
     <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <!-- Pares chave/valor da API fluente do SLF4J (log.atInfo().addKeyValue(...)) viram atributos do log no Loki -->
+        <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
+        <!-- Valores do MDC também são exportados como atributos -->
+        <captureMdcAttributes>*</captureMdcAttributes>
+        <!-- Nome da thread que gerou o log -->
+        <captureExperimentalAttributes>true</captureExperimentalAttributes>
+        <!-- Classe, método e linha de origem do log -->
+        <captureCodeAttributes>true</captureCodeAttributes>
+        <!-- Evita enviar ao Loki os logs de SQL (DEBUG/TRACE do Hibernate); eles continuam no console -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
     </appender>
 
     <root level="INFO">

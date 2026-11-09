@@ -30,7 +30,12 @@ public class ExceptionHandlerAdvice {
                     fieldError.getField(),
                     fieldError.getDefaultMessage());
         }
-        log.error("Error: validation error");
+        // Erro de validação é causado pelo cliente (4xx), portanto é registrado como WARN
+        log.atWarn()
+                .addKeyValue("event", "http.validation_error")
+                .addKeyValue("http.path", request.getServletPath())
+                .addKeyValue("validation.fields", String.join(",", validationErrors.keySet()))
+                .log("Validation error on {}: {}", request.getServletPath(), validationErrors);
         return new ApiError(400, "validation error",
                 request.getServletPath(), validationErrors);
     }

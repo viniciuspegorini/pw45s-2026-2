@@ -152,6 +152,7 @@ Ao iniciar a aplicação (o Spring Boot Docker Compose sobe o container), basta 
 | JVM | Memória *heap*, uso de CPU, *threads* por estado | Prometheus |
 | Banco de dados | Pool de conexões (HikariCP), chamadas aos repositórios do Spring Data | Prometheus |
 | Logs e traces | Logs por nível, requisições mais lentas (> 300 ms), logs de WARN e ERROR | Loki e Tempo |
+| Logs estruturados (atributos) | Logs por evento, autenticação (sucessos e falhas), duração média por rota, rotas com mais erros, log de acesso HTTP | Loki |
 
 Exemplos de consultas utilizadas:
 
@@ -191,6 +192,77 @@ management:
 
 O dashboard pode ser editado no Grafana (`allowUiUpdates: true`). Para manter as alterações, exporte o JSON (**Share** > **Export** > **Save to file**) e substitua o arquivo `grafana/dashboards/api-observabilidade.json`. Após alterar o arquivo, reinicie o container do Grafana (`docker compose restart grafana-lgtm`) para que a nova versão seja carregada.
 
+## Logs estruturados
+
+Além da mensagem, os logs da aplicação carregam **atributos** (pares chave/valor), que o Loki armazena como *structured metadata*. Assim, é possível filtrar e agregar os logs por campo, sem precisar de expressões regulares sobre o texto. Os atributos são adicionados com a API fluente do SLF4J 2:
+
+```java
+log.atWarn()
+        .addKeyValue("event", "auth.login.failure")
+        .addKeyValue("auth.provider", "local")
+        .addKeyValue("user.name", username)
+        .log("Authentication failed for user {}", username);
+```
+
+Para que o *appender* do OpenTelemetry exporte esses atributos, o arquivo `logback-spring.xml` foi configurado com:
+
+| Opção | Efeito |
+|-------|--------|
+| `captureKeyValuePairAttributes` | Exporta os pares chave/valor (`addKeyValue`) |
+| `captureMdcAttributes` | Exporta os valores do MDC |
+| `captureExperimentalAttributes` | Exporta o nome da *thread* |
+| `captureCodeAttributes` | Exporta classe, método e linha de origem do log |
+| `ThresholdFilter` (INFO) | Não envia ao Loki os logs de SQL do Hibernate (DEBUG/TRACE), que continuam no console |
+
+No Loki, os pontos do nome do atributo viram *underscore* (`http.status` → `http_status`).
+
+### Eventos registrados
+
+Todo log possui o atributo `event`, que identifica o tipo do acontecimento:
+
+| Evento | Nível | Origem |
+|--------|-------|--------|
+| `http.request` | INFO / WARN (4xx) / ERROR (5xx) | `RequestLoggingFilter`: um log por requisição, com `http.method`, `http.path`, `http.status`, `duration_ms` e `client.ip` |
+| `http.validation_error` | WARN | `ExceptionHandlerAdvice`, com os campos inválidos em `validation.fields` |
+| `http.error` | WARN / ERROR | `ErrorHandler` |
+| `auth.login.success` / `auth.login.failure` | INFO / WARN | Login local (`JWTAuthenticationFilter`) e com Google (`AuthController`), com `auth.provider` e `user.name` |
+| `auth.user.not_found` | WARN | `AuthService` |
+| `auth.token.invalid` | WARN | `JWTAuthorizationFilter`, token JWT inválido ou expirado |
+| `auth.unauthorized` | WARN | `EntryPointUnauthorizedHandler`, acesso sem autenticação |
+| `auth.google.*` | INFO / WARN / ERROR | `GoogleTokenVerifier` (o token não é registrado, pois é uma credencial) |
+| `<recurso>.list`, `.page`, `.find`, `.not_found`, `.created`, `.updated`, `.deleted` | INFO / WARN | `CrudController`, com `resource` e `resource.id` (ex.: `product.created`, `category.not_found`) |
+| `product.image.*` | INFO / WARN / ERROR | `ProductServiceImpl` |
+| `storage.upload`, `storage.download`, `storage.upload_failed` | INFO / ERROR | `StorageServiceImpl`, com `storage.bucket`, `file.name`, `file.size` e `duration_ms` |
+| `user.saved` / `user.created` | INFO | `UserService` e `AuthController` |
+| `demo.unstable.*` | INFO / WARN / ERROR | `GET /unstable` |
+
+Exemplos de consultas:
+
+```logql
+# Quantidade de logs por evento
+sum by (event) (count_over_time({service_name="server"} | event!="" [$__auto]))
+
+# Falhas de login por usuário
+sum by (user_name) (count_over_time({service_name="server"} | event="auth.login.failure" [1h]))
+
+# Duração média das requisições por rota, calculada a partir do log de acesso
+avg_over_time({service_name="server"} | event="http.request" | unwrap duration_ms [$__auto]) by (http_path)
+
+# Requisições com erro do servidor
+{service_name="server"} | event="http.request" | http_status >= 500
+```
+
+### Gerando carga
+
+O script `scripts/gerar-carga.sh` executa requisições que produzem todos os tipos de log (sucesso, recurso inexistente, erro de validação, login com sucesso e com falha, token inválido, acesso não autorizado, falhas aleatórias e requisições lentas). Com a aplicação em execução:
+
+```bash
+# 20 rodadas contra http://localhost:8080 (no Windows, executar pelo Git Bash)
+./scripts/gerar-carga.sh 20 http://localhost:8080
+```
+
+Em seguida, abrir o dashboard e observar a seção **Logs estruturados (atributos)**.
+
 ## Endpoints
 
 Executar os diferentes *endpoits* da API:
@@ -203,6 +275,7 @@ Executar os diferentes *endpoits* da API:
 | `GET /` | Endpoint de demonstração com span customizado (`@Observed`) |
 | `GET /greet/{name}` | Endpoint de demonstração com log e processamento simulado |
 | `GET /slow` | Endpoint de demonstração com resposta lenta (500 ms) |
+| `GET /unstable` | Endpoint de demonstração com latência aleatória (20 a 600 ms) e falha em ~20% das chamadas |
 
 
 ## O que você obtém automaticamente

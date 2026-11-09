@@ -43,8 +43,20 @@ public class ProductServiceImpl extends CrudServiceImpl<Product, Long>
                     fileType);
             entity.setImageName(fileResponse.getFilename());
             entity.setContentType(fileResponse.getContentType());
+        } else {
+            log.atWarn()
+                    .addKeyValue("event", "product.image.unsupported")
+                    .addKeyValue("file.name", file.getOriginalFilename())
+                    .log("Unsupported image type for file {}, product will be saved without image",
+                            file.getOriginalFilename());
         }
-        return super.save(entity);
+        Product saved = super.save(entity);
+        log.atInfo()
+                .addKeyValue("event", "product.created")
+                .addKeyValue("resource.id", saved.getId())
+                .addKeyValue("file.name", saved.getImageName())
+                .log("Product {} saved with image {}", saved.getId(), saved.getImageName());
+        return saved;
     }
 
     @Override
@@ -52,6 +64,19 @@ public class ProductServiceImpl extends CrudServiceImpl<Product, Long>
         InputStream in = null;
         try {
             Product product = this.findById(id);
+            if (product == null || product.getImageName() == null) {
+                log.atWarn()
+                        .addKeyValue("event", "product.image.not_found")
+                        .addKeyValue("resource.id", id)
+                        .log("Product {} not found or without image", id);
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            log.atInfo()
+                    .addKeyValue("event", "product.image.download")
+                    .addKeyValue("resource.id", id)
+                    .addKeyValue("file.name", product.getImageName())
+                    .log("Downloading image {} of product {}", product.getImageName(), id);
             in = storageService.downloadObject("commons", product.getImageName());
             response.setHeader("Content-Disposition", "attachment;filename="
                     + URLEncoder.encode(product.getImageName(), "UTF-8"));
@@ -59,7 +84,11 @@ public class ProductServiceImpl extends CrudServiceImpl<Product, Long>
             // Remove bytes from InputStream Copied to the OutputStream .
             in.transferTo(response.getOutputStream());
         } catch (IOException e) {
-            log.error(e.getMessage());
+            log.atError()
+                    .addKeyValue("event", "product.image.download_failed")
+                    .addKeyValue("resource.id", id)
+                    .setCause(e)
+                    .log("Error downloading image of product {}", id);
         } finally {
             if (in != null) {
                 try {

@@ -6,6 +6,7 @@ import br.edu.utfpr.pb.pw45s.server.storage.service.StorageService;
 import br.edu.utfpr.pb.pw45s.server.storage.util.StorageUtil;
 import software.amazon.awssdk.services.s3.model.Bucket;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class StorageServiceImpl implements StorageService {
 
     private final StorageUtil storageUtil;
@@ -41,7 +43,17 @@ public class StorageServiceImpl implements StorageService {
             String objectName = UUID.randomUUID().toString().replaceAll("-", "")
                     + fileName.substring(fileName.lastIndexOf("."));
             LocalDateTime createdTime = LocalDateTime.now();
+            long start = System.nanoTime();
             storageUtil.putObject(bucketName, multipartFile, objectName,fileType);
+            long durationMs = (System.nanoTime() - start) / 1_000_000;
+            log.atInfo()
+                    .addKeyValue("event", "storage.upload")
+                    .addKeyValue("storage.bucket", bucketName)
+                    .addKeyValue("file.name", objectName)
+                    .addKeyValue("file.size", fileSize)
+                    .addKeyValue("file.type", fileType)
+                    .addKeyValue("duration_ms", durationMs)
+                    .log("File {} ({} bytes) uploaded to bucket {} in {} ms", objectName, fileSize, bucketName, durationMs);
 
             return FileResponse.builder()
                     .filename(objectName)
@@ -51,12 +63,23 @@ public class StorageServiceImpl implements StorageService {
                     .build();
 
         } catch (Exception e) {
+            log.atError()
+                    .addKeyValue("event", "storage.upload_failed")
+                    .addKeyValue("storage.bucket", bucketName)
+                    .addKeyValue("file.name", multipartFile.getOriginalFilename())
+                    .setCause(e)
+                    .log("Error uploading file {} to bucket {}", multipartFile.getOriginalFilename(), bucketName);
             return null;
         }
     }
 
     @Override
     public InputStream downloadObject(String bucketName, String objectName) {
+        log.atInfo()
+                .addKeyValue("event", "storage.download")
+                .addKeyValue("storage.bucket", bucketName)
+                .addKeyValue("file.name", objectName)
+                .log("Downloading file {} from bucket {}", objectName, bucketName);
         return storageUtil.getObject(bucketName,objectName);
     }
 
@@ -67,6 +90,10 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public void makeBucket(String bucketName) {
+        log.atInfo()
+                .addKeyValue("event", "storage.bucket.created")
+                .addKeyValue("storage.bucket", bucketName)
+                .log("Creating bucket {}", bucketName);
         storageUtil.makeBucket(bucketName);
     }
 

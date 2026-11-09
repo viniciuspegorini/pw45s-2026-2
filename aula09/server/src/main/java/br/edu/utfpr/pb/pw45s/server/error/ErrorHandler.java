@@ -2,6 +2,7 @@ package br.edu.utfpr.pb.pw45s.server.error;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.event.Level;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.webmvc.error.ErrorAttributes;
 import org.springframework.boot.webmvc.error.ErrorController;
@@ -29,7 +30,13 @@ public class ErrorHandler implements ErrorController {
         if (attributes.get("status") == null) {
             attributes.put("status", response.getStatus());
         }
-        log.error("Error: {}; Path: {}", attributes.get("message"), attributes.get("path"));
+        int status = (Integer) attributes.get("status");
+        // Erros do cliente (4xx) como WARN e erros do servidor (5xx) como ERROR
+        log.atLevel(status >= 500 ? Level.ERROR : Level.WARN)
+                .addKeyValue("event", "http.error")
+                .addKeyValue("http.status", status)
+                .addKeyValue("http.path", attributes.get("path"))
+                .log("Error: {}; Path: {}; Status: {}", attributes.get("message"), attributes.get("path"), status);
         return new ApiError( (String) attributes.get("message"),
                 (String) attributes.get("path"),
                 (Integer) attributes.get("status")

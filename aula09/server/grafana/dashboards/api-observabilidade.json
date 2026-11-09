@@ -1089,6 +1089,325 @@
         "dedupStrategy": "none",
         "prettifyLogMessage": false
       }
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "Logs estruturados (atributos)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 61,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Logs por evento",
+      "description": "Quantidade de logs agrupada pelo atributo event (http.request, auth.login.success, product.created...)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 62,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "queryType": "range",
+          "legendFormat": "{{event}}",
+          "expr": "sum by (event) (count_over_time({service_name=\"server\"} | event!=\"\" [$__auto]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Autenticação: sucessos e falhas",
+      "description": "Eventos de login (local e Google), tokens inválidos e acessos não autorizados",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 62,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "queryType": "range",
+          "legendFormat": "{{event}}",
+          "expr": "sum by (event) (count_over_time({service_name=\"server\"} | event=~\"auth\\\\..*\" [$__auto]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "auth.login.success"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "auth.login.failure"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Duração média por rota (log de acesso)",
+      "description": "Calculada a partir do atributo duration_ms dos logs http.request (unwrap do LogQL)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 71,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "queryType": "range",
+          "legendFormat": "{{http_method}} {{http_path}}",
+          "expr": "avg_over_time({service_name=\"server\"} | event=\"http.request\" | unwrap duration_ms [$__auto]) by (http_method, http_path)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "auto",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": "table",
+      "title": "Rotas com mais erros (4xx e 5xx)",
+      "description": "Contagem de logs http.request com status maior ou igual a 400 no período selecionado",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 71,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "queryType": "instant",
+          "format": "table",
+          "expr": "topk(10, sum by (http_method, http_path, http_status) (count_over_time({service_name=\"server\"} | event=\"http.request\" | http_status >= 400 [$__range])))"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "http_method": "Método",
+              "http_path": "Rota",
+              "http_status": "Status",
+              "Value #A": "Ocorrências"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Ocorrências",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 26,
+      "type": "logs",
+      "title": "Log de acesso HTTP",
+      "description": "Um log por requisição (RequestLoggingFilter). Expanda a linha para ver os atributos e o link para o trace",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "queryType": "range",
+          "expr": "{service_name=\"server\"} | event=\"http.request\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false
+      }
     }
   ],
   "templating": {

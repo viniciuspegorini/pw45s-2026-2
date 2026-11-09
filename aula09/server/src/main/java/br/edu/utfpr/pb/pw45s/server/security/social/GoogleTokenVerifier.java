@@ -36,14 +36,23 @@ public class GoogleTokenVerifier {
                                                 "accounts.google.com"))
                                         .setAudience(Collections.singletonList(CLIENT_ID))
                                         .build();
-        log.info("Validating token: {}", idTokenString);
+        // O token não é registrado no log, pois é uma credencial
+        log.atInfo()
+                .addKeyValue("event", "auth.google.verify")
+                .log("Validating Google idToken");
         GoogleIdToken idToken = null;
         try {
           idToken = verifier.verify(idTokenString);
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.atError()
+                    .addKeyValue("event", "auth.google.verify_failed")
+                    .setCause(e)
+                    .log("Error validating Google idToken");
         }
         if (idToken == null) {
+            log.atWarn()
+                    .addKeyValue("event", "auth.google.invalid_token")
+                    .log("Google idToken is invalid");
             throw new RuntimeException("Google idToken is invalid.");
         }
         return idToken.getPayload();

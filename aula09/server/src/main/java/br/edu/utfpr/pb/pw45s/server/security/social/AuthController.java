@@ -66,6 +66,11 @@ public class AuthController {
                                 authorityRepository.findByAuthority("ROLE_USER")
                         );
                         userService.save(user);
+                        log.atInfo()
+                                .addKeyValue("event", "user.created")
+                                .addKeyValue("auth.provider", "google")
+                                .addKeyValue("user.name", username)
+                                .log("New user {} created from Google login", username);
                     }
                     String token = JWT.create()
                             .withSubject( username  )
@@ -75,14 +80,28 @@ public class AuthController {
                                     ))
                             .sign(Algorithm.HMAC512(SecurityConstants.SECRET));
 
+                    log.atInfo()
+                            .addKeyValue("event", "auth.login.success")
+                            .addKeyValue("auth.provider", "google")
+                            .addKeyValue("user.name", username)
+                            .log("User {} authenticated with Google", username);
                     return ResponseEntity.ok(
                             new AuthenticationResponse(token, new UserResponseDTO(user)));
 
                 }
             } catch (Exception e) {
-                log.error(e.getMessage());
+                log.atError()
+                        .addKeyValue("event", "auth.login.error")
+                        .addKeyValue("auth.provider", "google")
+                        .setCause(e)
+                        .log("Error during Google authentication: {}", e.getMessage());
             }
         }
+        log.atWarn()
+                .addKeyValue("event", "auth.login.failure")
+                .addKeyValue("auth.provider", "google")
+                .addKeyValue("auth.reason", idToken == null ? "MissingIdToken" : "InvalidIdToken")
+                .log("Google authentication failed");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
     }
 }

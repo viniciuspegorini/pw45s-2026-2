@@ -34,6 +34,11 @@ public class UserService {
         user.setUserAuthorities(authorities);
         log.info("Authority  added.");
         this.userRepository.save(user);
+        log.atInfo()
+                .addKeyValue("event", "user.saved")
+                .addKeyValue("user.name", user.getUsername())
+                .addKeyValue("auth.provider", user.getProvider())
+                .log("User {} saved", user.getUsername());
     }
 
 }
