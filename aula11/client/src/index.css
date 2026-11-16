@@ -1,0 +1,15 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;  
+}
+
+body {
+  margin: 0;
+  /* cores definidas pelo tema do PrimeReact (claro ou escuro) */
+  background-color: var(--surface-ground);
+  color: var(--text-color);
+  display: flex;
+  place-items: center;
+  min-height: 100vh;
+}

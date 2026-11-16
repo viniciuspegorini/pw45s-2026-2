@@ -1,0 +1,24 @@
+########################### NETWORK
+networks:
+  web:
+    external: true
+
+########################### SERVICES
+services:
+  pw45s-client:
+    image: pw45s-client
+    container_name: pw45s-client
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pw45s-client.rule=Host(`viniciuspegorini.com.br`)"
+      - "traefik.http.routers.pw45s-client.entrypoints=websecure"
+      - "traefik.http.routers.pw45s-client.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pw45s-client.loadbalancer.server.port=80"
+    ports:
+      - 8100:80
+    networks:
+      - web
